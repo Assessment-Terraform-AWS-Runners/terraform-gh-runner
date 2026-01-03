@@ -1,26 +1,3 @@
-<#
-.SYNOPSIS
-Install GitHub self-hosted runners on EC2.
-
-.DESCRIPTION
-This script can connect to one or more existing EC2 instances, and install
-N number of GitHub runners interactively on each EC2.
-
-.PARAMETER EC2IP
-Public IP of the EC2 instance.
-
-.PARAMETER User
-EC2 SSH username (default: ec2-user).
-
-.PARAMETER KeyPath
-Path to your .pem AWS key.
-
-.PARAMETER Repo
-GitHub repo in format org/repo.
-
-.PARAMETER NumRunners
-Number of runners to install on this EC2.
-#>
 
 param(
     [string]$EC2IP,
