@@ -58,8 +58,6 @@ resource "aws_instance" "gh_runner" {
   instance_type = var.instance_type
   key_name      = var.key_name
 
-  subnet_id = data.aws_subnets.default.ids[0]
-
   vpc_security_group_ids = [
     aws_security_group.gh_runner_sg.id
   ]
@@ -68,3 +66,4 @@ resource "aws_instance" "gh_runner" {
     Name = "github-runner-ec2"
   }
 }
+
