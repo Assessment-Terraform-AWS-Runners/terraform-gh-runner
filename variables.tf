@@ -28,7 +28,7 @@ variable "install_runners" {
 }
 
 variable "github_repo_url" {
-  description = "GitHub repository or organization URL"
+  description = "GitHub repo/org URL"
   type        = string
 }
 
@@ -39,7 +39,7 @@ variable "github_runner_token" {
 }
 
 variable "runner_count" {
-  description = "Number of runners to install on EC2"
+  description = "Number of runners to install"
   type        = number
   default     = 1
 }
