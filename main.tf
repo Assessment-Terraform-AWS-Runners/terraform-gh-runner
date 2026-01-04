@@ -67,3 +67,27 @@ resource "aws_instance" "gh_runner" {
   }
 }
 
+resource "null_resource" "install_runners" {
+  count = var.create_ec2 && var.install_runners ? 1 : 0
+
+  depends_on = [aws_instance.gh_runner]
+
+  connection {
+    type        = "ssh"
+    host        = aws_instance.gh_runner[0].public_ip
+    user        = "ec2-user"
+    private_key = file(var.private_key_path)
+  }
+
+  provisioner "file" {
+    source      = "scripts/install_runner.sh"
+    destination = "/tmp/install_runner.sh"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "chmod +x /tmp/install_runner.sh",
+      "/tmp/install_runner.sh '${var.github_repo_url}' '${var.github_runner_token}' '${var.runner_count}'"
+    ]
+  }
+}
