@@ -58,6 +58,8 @@ resource "aws_instance" "gh_runner" {
   instance_type = var.instance_type
   key_name      = var.key_name
 
+  associate_public_ip_address = true
+
   vpc_security_group_ids = [
     aws_security_group.gh_runner_sg.id
   ]
@@ -66,6 +68,7 @@ resource "aws_instance" "gh_runner" {
     Name = "github-runner-ec2"
   }
 }
+
 
 resource "null_resource" "install_runners" {
   count = var.create_ec2 && var.install_runners ? 1 : 0
