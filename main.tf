@@ -52,18 +52,45 @@ resource "aws_security_group" "gh_runner_sg" {
 }
 
 resource "aws_instance" "gh_runner" {
-  count = var.create_ec2 ? 1 : 0
+  count = var.create_ec2 ? var.instance_count : 0
 
   ami           = data.aws_ami.amazon_linux.id
   instance_type = var.instance_type
   key_name      = var.key_name
+
+  associate_public_ip_address = true
 
   vpc_security_group_ids = [
     aws_security_group.gh_runner_sg.id
   ]
 
   tags = {
-    Name = "github-runner-ec2"
+    Name = "github-runner-ec2-${count.index + 1}"
   }
 }
 
+resource "null_resource" "install_runners" {
+  count = var.install_runners ? var.instance_count : 0
+
+  depends_on = [aws_instance.gh_runner]
+
+  connection {
+    type        = "ssh"
+    host        = aws_instance.gh_runner[count.index].public_ip
+    user        = "ec2-user"
+    private_key = file(var.private_key_path)
+  }
+
+  provisioner "file" {
+    source      = "${path.module}/scripts/install_runner.sh"
+    destination = "/tmp/install_runner.sh"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "chmod +x /tmp/install_runner.sh",
+      "sed -i 's/\r$//' /tmp/install_runner.sh",
+      "sudo bash /tmp/install_runner.sh '${var.github_repo_url}' '${var.github_runner_token}' '${var.runner_count}' '${count.index + 1}'"
+    ]
+  }
+}
