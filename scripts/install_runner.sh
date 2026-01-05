@@ -6,47 +6,54 @@ RUNNER_TOKEN="$2"
 RUNNER_COUNT="$3"
 
 RUNNER_VERSION="2.330.0"
-RUNNER_USER="ghrunner"
+RUNNER_BASE_DIR="/home/ec2-user"
 
-echo "Installing GitHub runners..."
-echo "Repo URL: $GITHUB_URL"
-echo "Runner count: $RUNNER_COUNT"
+echo "Repo URL     : $GITHUB_URL"
+echo "Runner count : $RUNNER_COUNT"
+echo "User         : ec2-user"
 
-# Create user if not exists
-if ! id $RUNNER_USER &>/dev/null; then
-  useradd -m $RUNNER_USER
-fi
+sudo yum update -y
+sudo yum install -y curl git tar
 
-yum update -y
-yum install -y curl git tar
+cd "$RUNNER_BASE_DIR"
 
-cd /home/$RUNNER_USER
-
-for i in $(seq 1 $RUNNER_COUNT); do
+for i in $(seq 1 "$RUNNER_COUNT"); do
   RUNNER_DIR="actions-runner-$i"
-  mkdir -p $RUNNER_DIR
-  cd $RUNNER_DIR
+  RUNNER_NAME="ec2-runner-$i"
 
-  echo "Installing runner $i..."
+  echo "-------------------------------------"
+  echo " Installing $RUNNER_NAME"
+  echo "-------------------------------------"
 
-  curl -L -o runner.tar.gz \
-    https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz
+  mkdir -p "$RUNNER_DIR"
+  cd "$RUNNER_DIR"
 
-  tar xzf runner.tar.gz
-  chown -R $RUNNER_USER:$RUNNER_USER .
+  # Download runner if not exists
+  if [ ! -f "config.sh" ]; then
+    curl -s -L -o actions-runner.tar.gz \
+      https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz
+    tar xzf actions-runner.tar.gz
+  fi
 
-  sudo -u $RUNNER_USER ./config.sh \
-    --url "$GITHUB_URL" \
-    --token "$RUNNER_TOKEN" \
-    --name "ec2-runner-$i" \
-    --labels "ec2,self-hosted" \
-    --unattended \
-    --replace
+  # Configure runner only once
+  if [ ! -f ".runner" ]; then
+    ./config.sh \
+      --url "$GITHUB_URL" \
+      --token "$RUNNER_TOKEN" \
+      --name "$RUNNER_NAME" \
+      --labels "self-hosted,ec2" \
+      --unattended \
+      --replace
+  else
+    echo "Runner $RUNNER_NAME already configured"
+  fi
 
-  ./svc.sh install
-  ./svc.sh start
+  # Install + start service
+  sudo ./svc.sh install
+  sudo ./svc.sh start
+  sudo ./svc.sh status
 
   cd ..
 done
 
-echo "GitHub runners installed successfully"
+echo "✅ All GitHub runners installed and running"

@@ -71,14 +71,14 @@ resource "aws_instance" "gh_runner" {
 
 
 resource "null_resource" "install_runners" {
-  count = var.install_runner ? 1 : 0
+  count = var.install_runners ? 1 : 0
 
   depends_on = [aws_instance.gh_runner]
 
   provisioner "file" {
-    source      = "install_runner.sh"
-    destination = "/tmp/install_runner.sh"
-  }
+  source      = "${path.module}/scripts/install_runner.sh"
+  destination = "/tmp/install_runner.sh"
+}
 
   provisioner "remote-exec" {
     inline = [
