@@ -7,40 +7,54 @@ RUNNER_COUNT="$3"
 INSTANCE_INDEX="$4"
 
 RUNNER_VERSION="2.330.0"
-BASE_DIR="/home/ec2-user/actions-runner"
+RUNNER_BASE_DIR="/home/ec2-user/actions-runners"
 
+echo "==============================="
+echo "GitHub Runner Installation"
+echo "Repo URL        : $GITHUB_URL"
+echo "Runner Count    : $RUNNER_COUNT"
+echo "Instance Index  : $INSTANCE_INDEX"
+echo "==============================="
+
+# Install prereqs
 sudo yum update -y
 sudo yum install -y curl git tar
 
-cd /home/ec2-user
+# Ensure base directory exists AND OWNERSHIP IS CORRECT
+sudo mkdir -p "$RUNNER_BASE_DIR"
+sudo chown -R ec2-user:ec2-user "$RUNNER_BASE_DIR"
+
+cd "$RUNNER_BASE_DIR"
 
 for i in $(seq 1 "$RUNNER_COUNT"); do
-  RUNNER_DIR="${BASE_DIR}-${INSTANCE_INDEX}-${i}"
+  RUNNER_NAME="ec2-${INSTANCE_INDEX}-runner-${i}"
+  RUNNER_DIR="runner-${i}"
 
-  if [ -d "$RUNNER_DIR" ]; then
-    echo "Runner already exists: $RUNNER_DIR"
-    continue
-  fi
+  echo "---- Installing $RUNNER_NAME ----"
 
-  mkdir "$RUNNER_DIR"
+  mkdir -p "$RUNNER_DIR"
   cd "$RUNNER_DIR"
 
-  curl -L -o runner.tar.gz \
-    https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz
+  if [ ! -f "./config.sh" ]; then
+    curl -L -o runner.tar.gz \
+      https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz
+    tar xzf runner.tar.gz
+  fi
 
-  tar xzf runner.tar.gz
-  rm -f runner.tar.gz
+  sudo chown -R ec2-user:ec2-user .
 
   ./config.sh \
     --url "$GITHUB_URL" \
     --token "$RUNNER_TOKEN" \
-    --name "ec2-${INSTANCE_INDEX}-runner-${i}" \
+    --name "$RUNNER_NAME" \
     --labels "self-hosted,ec2" \
     --unattended \
     --replace
 
-  sudo ./svc.sh install ec2-user
+  sudo ./svc.sh install
   sudo ./svc.sh start
 
-  cd /home/ec2-user
+  cd ..
 done
+
+echo "✅ All GitHub runners installed successfully"
