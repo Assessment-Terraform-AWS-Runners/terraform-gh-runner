@@ -4,56 +4,43 @@ set -e
 GITHUB_URL="$1"
 RUNNER_TOKEN="$2"
 RUNNER_COUNT="$3"
+INSTANCE_INDEX="$4"
 
 RUNNER_VERSION="2.330.0"
-RUNNER_BASE_DIR="/home/ec2-user"
-
-echo "Repo URL     : $GITHUB_URL"
-echo "Runner count : $RUNNER_COUNT"
-echo "User         : ec2-user"
+BASE_DIR="/home/ec2-user/actions-runner"
 
 sudo yum update -y
 sudo yum install -y curl git tar
 
-cd "$RUNNER_BASE_DIR"
+cd /home/ec2-user
 
 for i in $(seq 1 "$RUNNER_COUNT"); do
-  RUNNER_DIR="actions-runner-$i"
-  RUNNER_NAME="ec2-runner-$i"
+  RUNNER_DIR="${BASE_DIR}-${INSTANCE_INDEX}-${i}"
 
-  echo "-------------------------------------"
-  echo " Installing $RUNNER_NAME"
-  echo "-------------------------------------"
+  if [ -d "$RUNNER_DIR" ]; then
+    echo "Runner already exists: $RUNNER_DIR"
+    continue
+  fi
 
-  mkdir -p "$RUNNER_DIR"
+  mkdir "$RUNNER_DIR"
   cd "$RUNNER_DIR"
 
-  # Download runner if not exists
-  if [ ! -f "config.sh" ]; then
-    curl -s -L -o actions-runner.tar.gz \
-      https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz
-    tar xzf actions-runner.tar.gz
-  fi
+  curl -L -o runner.tar.gz \
+    https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz
 
-  # Configure runner only once
-  if [ ! -f ".runner" ]; then
-    ./config.sh \
-      --url "$GITHUB_URL" \
-      --token "$RUNNER_TOKEN" \
-      --name "$RUNNER_NAME" \
-      --labels "self-hosted,ec2" \
-      --unattended \
-      --replace
-  else
-    echo "Runner $RUNNER_NAME already configured"
-  fi
+  tar xzf runner.tar.gz
+  rm -f runner.tar.gz
 
-  # Install + start service
-  sudo ./svc.sh install
+  ./config.sh \
+    --url "$GITHUB_URL" \
+    --token "$RUNNER_TOKEN" \
+    --name "ec2-${INSTANCE_INDEX}-runner-${i}" \
+    --labels "self-hosted,ec2" \
+    --unattended \
+    --replace
+
+  sudo ./svc.sh install ec2-user
   sudo ./svc.sh start
-  sudo ./svc.sh status
 
-  cd ..
+  cd /home/ec2-user
 done
-
-echo "✅ All GitHub runners installed and running"
