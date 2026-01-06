@@ -4,23 +4,38 @@ set -e
 GITHUB_URL="$1"
 RUNNER_TOKEN="$2"
 RUNNER_COUNT="$3"
-INSTANCE_INDEX="$4"
 
 RUNNER_VERSION="2.330.0"
-BASE_DIR="/home/ec2-user/actions-runner"
+BASE_DIR="/home/ec2-user/actions-runners"
 
+echo "========================================="
+echo " GitHub Runner Installation"
+echo " Repo URL     : $GITHUB_URL"
+echo " Runner Count : $RUNNER_COUNT"
+echo " User         : ec2-user"
+echo "========================================="
+
+if [[ -z "$GITHUB_URL" || -z "$RUNNER_TOKEN" || -z "$RUNNER_COUNT" ]]; then
+  echo "❌ Usage: ./install_runner.sh <repo_url> <runner_token> <runner_count>"
+  exit 1
+fi
+
+# Dependencies
 sudo yum update -y
 sudo yum install -y curl git tar
 
-cd /home/ec2-user
+mkdir -p "$BASE_DIR"
+cd "$BASE_DIR"
 
 for i in $(seq 1 "$RUNNER_COUNT"); do
-  RUNNER_DIR="${BASE_DIR}-${INSTANCE_INDEX}-${i}"
+  RUNNER_DIR="runner-$i"
 
-  if [ -d "$RUNNER_DIR" ]; then
-    echo "Runner already exists: $RUNNER_DIR"
+  if [[ -d "$RUNNER_DIR" ]]; then
+    echo "⚠ Runner $RUNNER_DIR already exists, skipping..."
     continue
   fi
+
+  echo "---- Installing runner-$i ----"
 
   mkdir "$RUNNER_DIR"
   cd "$RUNNER_DIR"
@@ -34,13 +49,15 @@ for i in $(seq 1 "$RUNNER_COUNT"); do
   ./config.sh \
     --url "$GITHUB_URL" \
     --token "$RUNNER_TOKEN" \
-    --name "ec2-${INSTANCE_INDEX}-runner-${i}" \
-    --labels "self-hosted,ec2" \
+    --name "$(hostname)-runner-$i" \
+    --labels "ec2,self-hosted" \
     --unattended \
     --replace
 
   sudo ./svc.sh install ec2-user
   sudo ./svc.sh start
 
-  cd /home/ec2-user
+  cd ..
 done
+
+echo "✅ All GitHub runners installed and started successfully"
