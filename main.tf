@@ -93,6 +93,8 @@ resource "null_resource" "copy_scripts" {
   # Make scripts executable
   provisioner "remote-exec" {
     inline = [
+      "cd /home/ec2-user/scripts",
+      "sed -i 's/\r$//' install_runner.sh",
       "chmod +x /home/ec2-user/scripts/install_runner.sh",
       "chmod +x /home/ec2-user/scripts/monitor_ec2.sh"
     ]
