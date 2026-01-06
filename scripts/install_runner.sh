@@ -6,7 +6,7 @@ RUNNER_TOKEN="$2"
 RUNNER_COUNT="$3"
 
 RUNNER_VERSION="2.330.0"
-RUNNER_BASE_DIR="/home/ec2-user/actions-runner"
+BASE_DIR="/home/ec2-user/actions-runners"
 
 echo "========================================="
 echo " GitHub Runner Installation"
@@ -15,15 +15,15 @@ echo " Runner Count : $RUNNER_COUNT"
 echo " User         : ec2-user"
 echo "========================================="
 
-sudo yum update -y
 sudo yum install -y curl git tar
 
-mkdir -p "$RUNNER_BASE_DIR"
-cd "$RUNNER_BASE_DIR"
+mkdir -p "$BASE_DIR"
+cd "$BASE_DIR"
 
 for i in $(seq 1 "$RUNNER_COUNT"); do
   RUNNER_NAME="ec2-runner-$i"
-  RUNNER_DIR="runner-$i"
+  RUNNER_DIR="$BASE_DIR/runner-$i"
+  WORK_DIR="$RUNNER_DIR/_work"
 
   echo "---- Installing $RUNNER_NAME ----"
 
@@ -41,13 +41,14 @@ for i in $(seq 1 "$RUNNER_COUNT"); do
     --token "$RUNNER_TOKEN" \
     --name "$RUNNER_NAME" \
     --labels "self-hosted,ec2" \
+    --work "$WORK_DIR" \
     --unattended \
     --replace
 
   sudo ./svc.sh install ec2-user
   sudo ./svc.sh start
 
-  cd ..
+  cd "$BASE_DIR"
 done
 
 echo "✅ All runners installed and started"
