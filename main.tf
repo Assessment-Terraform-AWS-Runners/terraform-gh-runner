@@ -71,23 +71,30 @@ resource "null_resource" "copy_scripts" {
 
   depends_on = [aws_instance.gh_runner]
 
+  # Create scripts directory first
+  provisioner "remote-exec" {
+    inline = [
+      "mkdir -p /home/ec2-user/scripts"
+    ]
+  }
+
   # Copy install_runner.sh
   provisioner "file" {
     source      = "${path.module}/scripts/install_runner.sh"
     destination = "/home/ec2-user/scripts/install_runner.sh"
   }
 
-  # Copy monitor-ec2.sh
+  # Copy monitor_ec2.sh
   provisioner "file" {
-    source      = "${path.module}/scripts/monitor-ec2.sh"
-    destination = "/home/ec2-user/scripts/monitor-ec2.sh"
+    source      = "${path.module}/scripts/monitor_ec2.sh"
+    destination = "/home/ec2-user/scripts/monitor_ec2.sh"
   }
 
   # Make scripts executable
   provisioner "remote-exec" {
     inline = [
-      "chmod +x /home/ec2-user/install_runner.sh",
-      "chmod +x /home/ec2-user/monitor-ec2.sh"
+      "chmod +x /home/ec2-user/scripts/install_runner.sh",
+      "chmod +x /home/ec2-user/scripts/monitor_ec2.sh"
     ]
   }
 
@@ -103,11 +110,6 @@ resource "null_resource" "copy_scripts" {
 #   count = var.install_runners ? 1 : 0
 
 #   depends_on = [aws_instance.gh_runner]
-
-#   provisioner "file" {
-#     source      = "${path.module}/scripts/install_runner.sh"
-#     destination = "/tmp/install_runner.sh"
-#   }
 
 #   provisioner "remote-exec" {
 #     inline = [
